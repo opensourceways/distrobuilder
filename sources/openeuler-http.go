@@ -3,11 +3,9 @@ package sources
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/pkg/errors"
 	"net/url"
 	"path/filepath"
-	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/lxc/distrobuilder/shared"
 )
@@ -28,7 +26,7 @@ func (s *openEuler) Run() error {
 	var err error
 
 	baseURL := fmt.Sprintf("%s/%s/ISO/%s/", s.definition.Source.URL,
-		strings.ToLower(s.definition.Image.Release),
+		s.definition.Image.Release,
 		s.definition.Image.Architecture)
 
 	fpath := shared.GetTargetDir(s.definition.Image)
