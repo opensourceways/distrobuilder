@@ -19,7 +19,7 @@ type openEuler struct {
 
 const (
 	isoFileName = "%s-%s-dvd.iso"
-	shaFileName = "%s-%s-dvd.iso.sha256num"
+	shaFileName = "%s-%s-dvd.iso.sha256sum"
 )
 
 func (s *openEuler) Run() error {
@@ -39,7 +39,7 @@ func (s *openEuler) Run() error {
 	}
 	//s.definition.Source.SkipVerification ignored here
 
-	_, err = shared.DownloadHash(s.definition.Image, baseURL+s.fileName, s.checksumFile, sha256.New())
+	_, err = shared.DownloadHash(s.definition.Image, baseURL+s.fileName, baseURL+s.checksumFile, sha256.New())
 	if err != nil {
 		return errors.Wrapf(err, "Failed to download %q", baseURL+s.fileName)
 	}
@@ -68,12 +68,15 @@ touch /etc/mtab /etc/fstab
 yum_args=""
 mkdir -p /etc/yum.repos.d
 
-# NOTE(tommylikehu): for openEuler packageDir and repoDir always exist.
-# Install initial package set
-cd /mnt/cdrom/Packages
-rpm -ivh --nodeps $(ls rpm-*.rpm | head -n1)
-rpm -ivh --nodeps $(ls yum-*.rpm | head -n1)
-
+if which dnf; then
+	alias yum=dnf
+else
+	# NOTE(tommylikehu): for openEuler packageDir and repoDir always exist.
+	# Install initial package set
+	cd /mnt/cdrom/Packages
+	rpm -ivh --nodeps $(ls rpm-*.rpm | head -n1)
+	rpm -ivh --nodeps $(ls yum-*.rpm | head -n1)
+fi
 # Add cdrom repo
 cat <<- EOF > /etc/yum.repos.d/cdrom.repo
 [cdrom]
