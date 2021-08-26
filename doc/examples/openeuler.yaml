@@ -1,13 +1,13 @@
 image:
   name: openEuler-20.03-LTS-SP2
   distribution: openEuler
-  release: 20.03-LTS-SP2
+  release: openEuler-20.03-LTS-SP2
   description: |-
     openEuler {{ image.release }}
   architecture: x86_64
 source:
   downloader: openeuler-http
-  url: http://repo.openeuler.org
+  url: https://repo.openeuler.org
 targets:
   lxc:
     create-message: |
