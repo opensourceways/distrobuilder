@@ -95,7 +95,7 @@ else
 fi
 
 yum_args="--disablerepo=* --enablerepo=cdrom"
-yum ${yum_args} -y reinstall yum
+yum ${yum_args} -y install yum
 
 pkgs="basesystem openEuler-release yum"
 
@@ -103,6 +103,7 @@ pkgs="basesystem openEuler-release yum"
 mkdir /rootfs
 yum ${yum_args} --installroot=/rootfs -y  --skip-broken install ${pkgs}
 rm -rf /rootfs/var/cache/yum
+rm -rf /etc/yum.repos.d/cdrom.repo
 `, gpgKeysPath))
 	if err != nil {
 		return errors.Wrap(err, "Failed to run script")
