@@ -231,6 +231,9 @@ packages:
         - sudo
         - rsyslog
         - vim-minimal
+        #NOTE: added for zsh installation
+        - zsh
+        - git
       action: install
 
     - packages:
@@ -332,6 +335,8 @@ actions:
 
       # Disable loginuid in PAM stack
       sed -i '/^session.*pam_loginuid.so/s/^session/# session/' /etc/pam.d/*
+      # install oh my zsh
+      sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
   - trigger: post-files
     action: |-

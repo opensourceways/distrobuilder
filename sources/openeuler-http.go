@@ -104,6 +104,8 @@ mkdir /rootfs
 yum ${yum_args} --installroot=/rootfs -y  --skip-broken install ${pkgs}
 rm -rf /rootfs/var/cache/yum
 rm -rf /etc/yum.repos.d/cdrom.repo
+# Remove all files in mnt packages
+rm -rf /mnt/cdrom
 `, gpgKeysPath))
 	if err != nil {
 		return errors.Wrap(err, "Failed to run script")
