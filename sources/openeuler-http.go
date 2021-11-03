@@ -2,8 +2,8 @@ package sources
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/url"
 	"path/filepath"
 
@@ -12,7 +12,6 @@ import (
 
 type openEuler struct {
 	commonRHEL
-
 	fileName     string
 	checksumFile string
 }
@@ -29,19 +28,19 @@ func (s *openEuler) Run() error {
 		s.definition.Image.Release,
 		s.definition.Image.Architecture)
 
-	fpath := shared.GetTargetDir(s.definition.Image)
+	fpath := s.getTargetDir()
 	s.fileName = fmt.Sprintf(isoFileName, s.definition.Image.Name, s.definition.Image.Architecture)
 	s.checksumFile = fmt.Sprintf(shaFileName, s.definition.Image.Name, s.definition.Image.Architecture)
 
 	_, err = url.Parse(baseURL)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to parse URL %q", baseURL)
+		return errors.New(fmt.Sprintf("Failed to parse URL %s", baseURL))
 	}
 	//s.definition.Source.SkipVerification ignored here
 
-	_, err = shared.DownloadHash(s.definition.Image, baseURL+s.fileName, baseURL+s.checksumFile, sha256.New())
+	_, err = s.DownloadHash(s.definition.Image, baseURL+s.fileName, baseURL+s.checksumFile, sha256.New())
 	if err != nil {
-		return errors.Wrapf(err, "Failed to download %q", baseURL+s.fileName)
+		return errors.New(fmt.Sprintf("Failed to download %s", baseURL+s.fileName))
 	}
 
 	source := filepath.Join(fpath, s.fileName)
@@ -50,7 +49,7 @@ func (s *openEuler) Run() error {
 
 	err = s.unpackISO(source, s.rootfsDir, s.isoRunner)
 	if err != nil {
-		return errors.Wrapf(err, "Failed to unpack %q", source)
+		return errors.New(fmt.Sprintf("Failed to unpack %s", source))
 	}
 	return nil
 }
@@ -108,7 +107,7 @@ rm -rf /etc/yum.repos.d/cdrom.repo
 rm -rf /mnt/cdrom
 `, gpgKeysPath))
 	if err != nil {
-		return errors.Wrap(err, "Failed to run script")
+		return errors.New(fmt.Sprintf("Failed to run script"))
 	}
 
 	return nil
