@@ -258,7 +258,7 @@ func (c *cmdGlobal) preRunBuild(cmd *cobra.Command, args []string) error {
 	if isRunningBuildDir {
 		c.sourceDir = c.targetDir
 	} else {
-		c.sourceDir = filepath.Join(c.flagCacheDir, "rootfs")
+		c.sourceDir = filepath.Join(c.flagCacheDir, "rootfs_package")
 	}
 
 	// Create source directory if it doesn't exist
