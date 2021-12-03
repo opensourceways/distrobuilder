@@ -45,7 +45,6 @@ func (s *openEuler) Run() error {
 
 	source := filepath.Join(fpath, s.fileName)
 
-	s.logger.Infow("Unpacking image", "file", source)
 	s.logger.Infow("Unpacking image folder", "rootfsDir", s.rootfsDir, "cacheDir", s.cacheDir)
 
 	err = s.unpackISO(source, s.rootfsDir, s.isoRunner)

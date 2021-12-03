@@ -85,6 +85,21 @@ files:
     types:
       - container
 
+  - name: ifcfg-enp5s0
+    path: /etc/sysconfig/network-scripts/ifcfg-enp5s0
+    generator: dump
+    templated: true
+    content: |-
+      DEVICE=enp5s0
+      BOOTPROTO=dhcp
+      ONBOOT=yes
+      HOSTNAME=LXC_NAME
+      TYPE=Ethernet
+      MTU=
+      DHCP_HOSTNAME=LXC_NAME
+    types:
+      - vm
+
   - name: ifcfg-enp5s0.lxd
     path: /etc/sysconfig/network-scripts/ifcfg-enp5s0
     generator: template
@@ -211,6 +226,48 @@ files:
   - generator: lxd-agent
     types:
       - vm
+  - name: gotty.service
+    path: /etc/systemd/system/gotty.service
+    generator: dump
+    content: |-
+      [Unit]
+      Description=The gotty server for web terminal
+      After=network.target remote-fs.target nss-lookup.target
+
+      [Service]
+      Type=simple
+      PIDFile=/run/gotty.pid
+      ExecStartPre=/usr/bin/rm -f /run/gotty.pid
+      ExecStart=/usr/local/bin/gotty zsh
+      KillSignal=SIGQUIT
+      User=coder
+      Group=coder
+      TimeoutStopSec=5
+      KillMode=mixed
+      PrivateTmp=true
+      Restart=on-failure
+      RestartSec=1
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - name: welcome.sh
+    path: /usr/local/welcome.sh
+    generator: dump
+    content: |-
+      CURRENT_DATE=`date +"%Y-%m-%d"`
+      CURRENT_VERSION=`cat /etc/os-release | grep PRETTY_NAME | awk -F '"' '{print $2}'`
+      printf '                     ____     __          ___  __                                     __\n'
+      printf ' ___  ___  ___ ___  / __/_ __/ /__ ____  / _ \/ /__ ___ _____ ________  __ _____  ___/ /\n'
+      printf '/ _ \/ _ \/ -_) _ \/ _// // / / -_) __/ / ___/ / _ `/ // / _ `/ __/ _ \/ // / _ \/ _  /\n'
+      printf '\___/ .__/\__/_//_/___/\_,_/_/\__/_/   /_/  /_/\_,_/\_, /\_, /_/  \___/\_,_/_//_/\_,_/\n'
+      printf '   /_/                                             /___//___/\n'
+      echo ""
+      echo "Hey, ${SHELL_USER:-Developer}:"
+      echo "  Nice to have you here exploring our courses within ${CURRENT_VERSION:-openEuler}, if you have any trouble,"
+      echo "please contact: ${COMMUNITY_EMAIL:-contact@openeuler.io}!"
+      echo "Infra Team"
+      echo "${CURRENT_DATE}"
 
 packages:
   manager: yum
@@ -231,9 +288,10 @@ packages:
         - sudo
         - rsyslog
         - vim-minimal
-        #NOTE: added for zsh installation
+        #NOTE: added for zsh installation, tar for gotty binary
         - zsh
         - git
+        - tar
       action: install
 
     - packages:
@@ -289,11 +347,6 @@ packages:
       types:
         - vm
     - packages:
-        - kernel-plus
-      action: install
-      types:
-        - vm
-    - packages:
         - kernel
       action: install
       types:
@@ -335,8 +388,6 @@ actions:
 
       # Disable loginuid in PAM stack
       sed -i '/^session.*pam_loginuid.so/s/^session/# session/' /etc/pam.d/*
-      # install oh my zsh
-      sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 
   - trigger: post-files
     action: |-
@@ -365,25 +416,32 @@ actions:
   - trigger: post-files
     action: |-
       #!/bin/sh
-      set -eux
+      # create prepared user and password
+      GroupID=1000
+      UserID=1000
+      User=coder
+      Group=coder
 
-      # Regenerate initramfs
-      kver=$(ls /boot/initramfs-*.img | sed -r 's#.*initramfs-(.+)\.img#\1#')
-      dracut --kver "${kver}" -f
-
-      target="$(readlink -f /etc/grub2-efi.cfg)"
-      grub2-mkconfig -o "${target}"
-
-      sed -i "s#root=[^ ]*#root=/dev/sda2#g" "${target}"
+      groupadd ${Group} --gid ${GroupID} && useradd ${User} --uid ${UserID} --gid ${GroupID}
+      echo "${User}:openEuler@osinfra" | chpasswd && gpasswd -a ${User} wheel
+      echo "%wheel	ALL=(ALL)	NOPASSWD: ALL" | tee -a /etc/sudoers
     types:
       - vm
+      - container
+    variants:
+      - default
 
   - trigger: post-files
     action: |-
       #!/bin/sh
       set -eux
-
       systemctl enable NetworkManager.service
+      # install oh my zsh
+      su - coder -c 'RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+      cat /usr/local/welcome.sh | tee -a /home/coder/.zshrc > /dev/null && rm /usr/local/welcome.sh
+      # install gotty and enable
+      curl -L https://github.com/opensourceways/gotty/releases/download/v1.0.0/gotty_v1.0.0_linux_amd64.tar.gz -o ./gotty.tar.gz
+      tar -xvf ./gotty.tar.gz -C /usr/local/bin && rm ./gotty.tar.gz
     types:
       - vm
     variants:
@@ -393,8 +451,13 @@ actions:
     action: |-
       #!/bin/sh
       set -eux
-
       systemctl enable network
+      # install oh my zsh
+      su - coder -c 'RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+      cat /usr/local/welcome.sh | tee -a /home/coder/.zshrc > /dev/null && rm /usr/local/welcome.sh
+      # install gotty and enable
+      curl -L https://github.com/opensourceways/gotty/releases/download/v1.0.0/gotty_v1.0.0_linux_amd64.tar.gz -o ./gotty.tar.gz
+      tar -xvf ./gotty.tar.gz -C /usr/local/bin && rm ./gotty.tar.gz
     types:
       - container
     variants:
